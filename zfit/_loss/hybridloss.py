@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from typing import Literal, Optional, Union
 
 import pydantic.v1 as pydantic
+import tensorflow as tf
 from pydantic.v1 import Field
 
 from .. import z
@@ -172,7 +173,7 @@ class HybridLoss(BaseHybridLoss):
         with equal weights:
 
         .. math::
-            \mathcal{L}_{hybrid} = \mathcal{L}_{binned} + \mathcal{L}_{unbinned}
+            \mathcal{L}_{hybrid} = \mathcal{L}_{binned} * \mathcal{L}_{unbinned}
 
         The binned and unbinned components contribute equally to the total likelihood, allowing
         simultaneous fitting of both types of data.
@@ -195,7 +196,7 @@ class HybridLoss(BaseHybridLoss):
         )
 
         # Check for extended PDFs and warn
-        extended_pdfs = [pdf for pdf in model_binned + model_unbinned if pdf.is_extended]
+        extended_pdfs = [pdf for pdf in [model_binned, model_unbinned] if pdf.is_extended]
         if extended_pdfs and type(self) is HybridLoss:
             warn_advanced_feature(
                 f"Extended PDFs ({extended_pdfs}) will be treated as non-extended in HybridLoss. "
@@ -311,8 +312,8 @@ class ExtendedHybridLoss(BaseHybridLoss):
         This loss function combines extended binned and unbinned negative log likelihoods:
 
         .. math::
-            \mathcal{L}_{hybrid} = \mathcal{L}_{binned} + \mathcal{L}_{unbinned} +
-            \sum_i \mathcal{L}_{yield,i}
+            \mathcal{L}_{hybrid} = \mathcal{L}_{binned} * \mathcal{L}_{unbinned} *
+            \prod_i \mathcal{L}_{yield,i}
 
         The yield terms account for the total number of events in each component.
 
