@@ -53,6 +53,7 @@ from ..z.math import (
     numerical_value_gradient,
     numerical_value_gradients_hessian,
 )
+from .._data.binneddatav1 import BinnedData
 from .baseobject import BaseNumeric, extract_filter_params
 from .constraint import BaseConstraint
 from .interfaces import ZfitBinnedData, ZfitData, ZfitIndependentParameter, ZfitLoss, ZfitParameter, ZfitPDF, ZfitSpace
@@ -381,7 +382,8 @@ class BaseLoss(ZfitLoss, BaseNumeric):
                 log_offset = self._options.get("subtr_const_value")
                 if log_offset is None:
                     run.assert_executing_eagerly()  # first time subtr
-                    nevents_tot = znp.sum([d._approx_nevents for d in self.data])
+                    nevents_tot = znp.sum([znp.prod([len(bins) for bins in d.binning])
+                                           if isinstance(d, BinnedData) else d._approx_nevents for d in self.data])
                     log_offset_sum = (
                         self._call_value(
                             data=self.data,

@@ -32,21 +32,9 @@ class HybridLoss(BaseLoss):
             binned_data: Binned datasets
             fit_range: Fit range for the unbinned part
             constraints: Additional constraints on the parameters
-            options: Additional options for the loss calculation. In addition to standard options:
-                    - 'subtr_const': bool or {'unbinned': bool, 'binned': bool}
-                      If bool: applies to both parts
-                      If dict: separate control for each part
+            options: Additional options for the loss calculation.
+                    'subtr_const': Controls offset subtraction for both parts
         """
-        options = {} if options is None else dict(options)
-
-        # Handle separate offset options
-        subtr_const = options.pop('subtr_const', True)
-        if isinstance(subtr_const, bool):
-            self._subtr_const = {'unbinned': subtr_const, 'binned': subtr_const}
-        elif isinstance(subtr_const, dict):
-            self._subtr_const = subtr_const
-        else:
-            raise ValueError("subtr_const must be bool or dict")
 
         # Convert inputs to lists
         unbinned_model = convert_to_container(unbinned_model)
@@ -54,27 +42,23 @@ class HybridLoss(BaseLoss):
         binned_model = convert_to_container(binned_model)
         binned_data = convert_to_container(binned_data)
 
-        # Create individual loss components with their own offset settings
-        unbinned_options = dict(options)
-        unbinned_options['subtr_const'] = self._subtr_const['unbinned']
+        # Create individual loss components
         self._unbinned_loss = ExtendedUnbinnedNLL(
             model=unbinned_model,
             data=unbinned_data,
             fit_range=fit_range,
-            constraints=None,  # Constraints will be handled by the hybrid loss
-            options=unbinned_options
+            constraints=None,  # Constraints handled by hybrid loss
+            options=options
         )
 
-        binned_options = dict(options)
-        binned_options['subtr_const'] = self._subtr_const['binned']
         self._binned_loss = ExtendedBinnedNLL(
             model=binned_model,
             data=binned_data,
-            constraints=None,  # Constraints will be handled by the hybrid loss
-            options=binned_options
+            constraints=None,  # Constraints handled by hybrid loss
+            options=options
         )
 
-        # Initialize base class with combined models and data
+        # Initialize base class
         super().__init__(
             model=list(unbinned_model) + list(binned_model),
             data=list(unbinned_data) + list(binned_data),
@@ -84,6 +68,7 @@ class HybridLoss(BaseLoss):
         )
 
         self._errordef = 0.5
+        self._offsets = {'unbinned': 0.0, 'binned': 0.0}
 
     @property
     def is_extended(self):
@@ -93,10 +78,17 @@ class HybridLoss(BaseLoss):
         """Override to handle separate offset initialization for binned and unbinned parts."""
         params, needs_compile = super().check_precompile(params=params, force=force)
 
-        # Let individual losses handle their own precompilation
-        if needs_compile:
+        if needs_compile and self._options.get("subtr_const", False):
+            # set offset for HybridLoss to 0 (not used anywhere, so not needed)
+            # self._options["subtr_const_value"] = 0.0
+
+            # Calculate individual offsets
             self._unbinned_loss.check_precompile(params=params, force=force)
             self._binned_loss.check_precompile(params=params, force=force)
+
+            # Store individual offsets
+            self._offsets['unbinned'] = self._unbinned_loss._options.get("subtr_const_value", 0.0)
+            self._offsets['binned'] = self._binned_loss._options.get("subtr_const_value", 0.0)
 
         return params, needs_compile
 
@@ -108,14 +100,21 @@ class HybridLoss(BaseLoss):
         binned_model = model[n_unbinned:]
         binned_data = data[n_unbinned:]
 
-        # Get individual loss values with their own offsets
-        # log_offset parameter is ignored as each component handles its own offset
+        # Pass appropriate offset to each loss
+        if log_offset is False:
+            unbinned_offset = False
+            binned_offset = False
+        else:
+            unbinned_offset = self._offsets['unbinned']
+            binned_offset = self._offsets['binned']
+
+        # Calculate individual losses with their respective offsets
         unbinned_nll = self._unbinned_loss._loss_func(
             unbinned_model,
             unbinned_data,
             fit_range,
             None,  # Constraints handled at hybrid level
-            None  # Each loss handles its own offset
+            unbinned_offset
         )
 
         binned_nll = self._binned_loss._loss_func(
@@ -123,7 +122,7 @@ class HybridLoss(BaseLoss):
             binned_data,
             None,  # Fit range not used in binned loss
             None,  # Constraints handled at hybrid level
-            None  # Each loss handles its own offset
+            binned_offset
         )
 
         # Combine losses
@@ -135,23 +134,6 @@ class HybridLoss(BaseLoss):
             total_nll += constraints
 
         return total_nll
-
-    def value(self, *, params: ztyping.ParamTypeInput = None, full: bool | None = None):
-        """Calculate the loss value.
-
-        Args:
-            params: Parameters to evaluate the loss at
-            full: If True, return the full loss without any offset subtraction
-        """
-        if full:
-            # Temporarily disable offset subtraction
-            old_subtr = self._subtr_const
-            self._subtr_const = {'unbinned': False, 'binned': False}
-            try:
-                return super().value(params=params, full=full)
-            finally:
-                self._subtr_const = old_subtr
-        return super().value(params=params, full=full)
 
     def create_new(
         self,
@@ -177,8 +159,7 @@ class HybridLoss(BaseLoss):
         if constraints is NONE:
             constraints = self.constraints
         if options is NONE:
-            options = dict(self._options)
-            options['subtr_const'] = self._subtr_const
+            options = self._options
 
         return type(self)(
             unbinned_model=unbinned_model,
