@@ -827,8 +827,8 @@ class BaseLoss(ZfitLoss, BaseNumeric):
         class_name = repr(self.__class__)[:-2].split(".")[-1]
         return (
             f"<{class_name} "
-            f"model={one_two_many([model.name for model in self.model])} "
-            f"data={one_two_many([data.name for data in self.data])} "
+            f"model={one_two_many([model.name or model.label for model in self.model])} "
+            f"data={one_two_many([data.name or data.label for data in self.data])} "
             f'constraints={one_two_many(self.constraints, many="True")} '
             f">"
         )
