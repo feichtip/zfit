@@ -382,7 +382,7 @@ class BaseLoss(ZfitLoss, BaseNumeric):
                 log_offset = self._options.get("subtr_const_value")
                 if log_offset is None:
                     run.assert_executing_eagerly()  # first time subtr
-                    nevents_tot = znp.sum([znp.prod([len(bins) for bins in d.binning])
+                    nevents_tot = znp.sum([znp.prod([len(bins) for bins in d.binning], dtype='int32')
                                            if isinstance(d, BinnedData) else d._approx_nevents for d in self.data])
                     log_offset_sum = (
                         self._call_value(
