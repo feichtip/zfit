@@ -103,15 +103,22 @@ class HybridLoss(BaseLoss):
 
     def check_precompile(self, *, params=None, force=False):
         """Override to handle separate offset initialization for binned and unbinned parts."""
-        params, needs_compile = super().check_precompile(params=params, force=force)
+
+        # params, needs_compile = super().check_precompile(params=params, force=force)
+        from zfit import run
+        if (not run.executing_eagerly()) or (self.is_precompiled and not force):
+            needs_compile = False
+        else:
+            self.is_precompiled = True
+            needs_compile = True
 
         if needs_compile and self._options["subtr_const"]:
             # set offset for HybridLoss to 0 (actual value not used anywhere, only should not be set to False)
             # self._options["subtr_const_value"] = 0.0
 
             # Calculate individual offsets
-            self._binned_loss.check_precompile(params=params, force=force)
-            self._unbinned_loss.check_precompile(params=params, force=force)
+            self._binned_loss.check_precompile(params=params, force=force, subtr_value=11000.0)
+            self._unbinned_loss.check_precompile(params=params, force=force, subtr_value=0.0)
 
             # Store individual offsets
             self._offsets['binned'] = self._binned_loss._options.get("subtr_const_value", False)
