@@ -28,7 +28,7 @@ init_modules = sys.modules.keys()
 
 
 @pytest.fixture(autouse=True)
-def setup_teardown():  # noqa: PT004
+def setup_teardown():
     import zfit
 
     old_chunksize = zfit.run.chunking.max_n_points
@@ -150,7 +150,7 @@ def cleanup_hs3(obj1, obj2):
     missing2 = set(obj1.keys()) - set(obj2.keys())
     missing1 = set(obj2.keys()) - set(obj1.keys())
     if missing1 and missing2:
-        msg = f"Both objects are missing keys: {missing1} and {missing2}. " f"obj1: {obj1}, obj2: {obj2}"
+        msg = f"Both objects are missing keys: {missing1} and {missing2}. obj1: {obj1}, obj2: {obj2}"
         raise ValueError(msg)
     return cleanup_recursive(obj1, obj2)
 

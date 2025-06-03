@@ -4,15 +4,15 @@ Changelog
 
 .. _newest-changelog:
 
-
 Develop
-=======
+======================
 
 Major Features and Improvements
 -------------------------------
 
 Breaking changes
 ------------------
+
 
 Deprecations
 -------------
@@ -28,6 +28,65 @@ Requirement changes
 
 Thanks
 ------
+
+
+0.26.0 (2 Jun 2025)
+======================
+
+Major Features and Improvements
+-------------------------------
+- asymptotic uncertainties for weighted fits have been optimized and fixed, working for yields and constraints correctly
+
+Breaking changes
+------------------
+- renamed ``effsize`` weight corretion to actual ``sumw2``
+
+
+Bug fixes and small changes
+---------------------------
+- Allow BinnedSamplerData to be instantiated from a histogram and fix variance handling if not given.
+- Enhance the precision of binned loss functions
+- make adaptive bandwidth default in KDE
+
+
+
+0.25.0 (14 Mar 2025)
+======================
+
+Major Features and Improvements
+-------------------------------
+- New weighted corrections for Hesse uncertainty calculation. The corrections are now selectable by specifying
+  ``weighcorr=...``, allowing for (currently) three values: ``"asymptotic"`` (current, and default), ``False`` (no correction),
+  and ``"sumw2"`` (new correction). sumw2 scales the uncertainties by the "effective size" of the dataset, a significantly
+  faster, yet not asymptotically correct method. Useful for a quick estimate of the uncertainties.
+
+
+Bug fixes and small changes
+---------------------------
+- allow the usage of ``ZfitData`` objects (binned and unbinned version respectively) in ``update_data`` method of sampler objects
+  ``zfit.data.SamplerData`` and ``zfit.data.BinnedSamplerData``
+  (for example, the objects that are returned by ``create_sampler``)
+- add an attribute ``num_entries`` to the ``Data`` object that returns the number of entries in the data and an attribute ``samplesize`` reflecting the sum of the weights, deprecating the ambiguous ``nevents`` attribute.
+  The former can be used to define the array shape, the latter matters in statistical tests.
+- The EDM calculation was optimized; additionally,it would error if the matrix was singular.
+  The behavior is now changed to return 999'999 in this case.
+  Could be reconsidered in the future to provide a "best fit" instead.
+- A simple bug in the LevenbergMarquardt minimizer was fixed that would error due to a wrong return shape of an internal result.
+
+
+Requirement changes
+-------------------
+- relax TF and TFP requirement to include 2.19 and 0.26, respectively
+
+Thanks
+------
+- @fsouzade for finding a bug in the ``update_data`` method of the sampler objects
+
+
+0.24.3 (6 Jan. 2025)
+======================
+
+Relax TF requirement to >= 2.16 (instead of 2.18) and equivalent TensorFlow-Probability to >= 0.24 (instead of 0.25)
 
 0.24.2 (11 Dec. 2024)
 ======================
@@ -61,11 +120,11 @@ Requirement changes
 Major Features and Improvements
 -------------------------------
 - Minimizers can use the new ``SimpleLoss.from_any`` method that allows other libraries to hook into the minimization.
-  For example, using zfit-physics, minimizers can directly minimize RooFit ``RooNllVar`` (as created by ``createNLL`` described `here <https://root.cern.ch/doc/master/classRooAbsPdf.html#a24b1afec4fd149e08967eac4285800de>`_
+  For example, using zfit-physics, minimizers can directly minimize RooFit ``RooNllVar`` (as created by ``createNLL`` described `here <https://root.cern.ch/doc/master/classRooAbsPdf.html#a24b1afec4fd149e08967eac4285800de>`_)
 - Added the well performing ``LevenbergMarquardt`` minimizer, a new implementation of the Levenberg-Marquardt algorithm.
 - New BFGS minimizer implementation of Scipy, ``ScipyBFGS``.
 - Reactivate a few minimizers: ``ScipyDogleg``, ``ScipyNCG``, ``ScipyCOBYLA`` and ``ScipyNewtonCG``
-- Add ``GeneralizedGauss`` PDF, where the exponent is something else than squared, taken from `tensorflow-probability<https://www.tensorflow.org/probability/api_docs/python/tfp/distributions/GeneralizedNormal>`_.
+- Add ``GeneralizedGauss`` PDF, where the exponent is something else than squared, taken from `tensorflow-probability <https://www.tensorflow.org/probability/api_docs/python/tfp/distributions/GeneralizedNormal>`_.
 
 Breaking changes
 ------------------
@@ -89,14 +148,6 @@ Bug fixes and small changes
   for left and right) could cause a crash due to some internal caching. This is now fixed.
 - Minimizers have now been renamed without the trailing ``V1``. The old names are still available but will be removed in the future.
 
-Experimental
-------------
-
-Requirement changes
--------------------
-
-Thanks
-------
 
 
 0.22.0 22 Aug 2024
@@ -246,7 +297,7 @@ Deprecations
 -------------
 - ``result.fminfull`` is deprecated and will be removed in the future. Use ``result.fmin`` instead.
 - ``Data.set_data_range`` is deprecated and will be removed in the future. Use ``with_range`` instead.
-- ``Space`` has many deprecated methods, such as ``rect_limits`` and quite a few more. The full discussion can be found `here <https://github.com/zfit/zfit/discussions/533>`_.
+- ``Space`` has many deprecated methods, such as ``rect_limits`` and quite a few more. The full discussion can be found in the `GitHub discussion <https://github.com/zfit/zfit/discussions/533>`_.
 - ``fixed_params`` in ``create_sampler`` is deprecated and will be removed in the future. Use ``params`` instead.
 - ``fixed_params`` attribute of the ``Sampler`` is deprecated and will be removed in the future. Use ``params`` instead.
 - ``uncertainties`` in ``GaussianConstraint`` is deprecated and will be removed in the future. Use either explicitly ``sigma`` or ``cov``.
