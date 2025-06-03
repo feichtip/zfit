@@ -386,7 +386,7 @@ class BaseLoss(ZfitLoss, BaseNumeric):
         self.add_cache_deps(cache_deps=data)
         return pdf, data, fit_range
 
-    def check_precompile(self, *, params=None, force=False):
+    def check_precompile(self, *, params=None, force=False, subtr_value=10000.0):
         from zfit import run
 
         if (not run.executing_eagerly()) or (self.is_precompiled and not force):
@@ -409,7 +409,7 @@ class BaseLoss(ZfitLoss, BaseNumeric):
                             # so the loss will decrease
                             log_offset=z.convert_to_tensor(0.0),
                         )
-                        - 10000.0
+                        - subtr_value
                     )
                     log_offset = tf.stop_gradient(-znp.divide(log_offset_sum, nevents_tot))
                     self._options["subtr_const_value"] = log_offset
